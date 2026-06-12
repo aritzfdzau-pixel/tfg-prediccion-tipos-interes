@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Archivos de log de Streamlit
+streamlit_err.txt
+streamlit_log.txt
+
+# Archivo temporal
+tfg_temp.docx
+
+# Memoria interna de Claude Code (no relevante para el TFG)
+.claude/
+
+# Editor y OS
+.DS_Store
+Thumbs.db
+*.swp

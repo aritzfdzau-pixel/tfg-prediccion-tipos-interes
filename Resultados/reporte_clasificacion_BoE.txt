@@ -1,0 +1,9 @@
+              precision    recall  f1-score   support
+
+        Baja       0.50      0.20      0.29         5
+     Estable       0.82      0.95      0.88        19
+        Sube       0.00      0.00      0.00         0
+
+    accuracy                           0.79        24
+   macro avg       0.44      0.38      0.39        24
+weighted avg       0.75      0.79      0.75        24

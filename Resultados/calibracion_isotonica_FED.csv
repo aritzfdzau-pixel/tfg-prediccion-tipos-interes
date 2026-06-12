@@ -1,0 +1,25 @@
+Fecha,Real,Pred_orig,Pred_cal,P_Baja_orig,P_Est_orig,P_Sube_orig,Conf_orig,Nivel_orig,P_Baja_cal,P_Est_cal,P_Sube_cal,Conf_cal,Nivel_cal,DeltaConf
+2024-01,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-02,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-03,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-04,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-05,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-06,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-07,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-08,Baja,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2024-09,Baja,Baja,Baja,84.73,14.37,0.91,77.1,Muy alta,53.33,46.67,0.0,30.0,Baja,-47.1
+2024-10,Baja,Baja,Baja,96.09,3.85,0.06,94.1,Muy alta,77.61,22.39,0.0,66.4,Alta,-27.7
+2024-11,Baja,Baja,Estable,71.78,25.29,2.94,57.7,Alta,47.37,52.63,0.0,28.9,Baja,-28.8
+2024-12,Baja,Baja,Baja,80.78,17.36,1.86,71.2,Alta,53.33,46.67,0.0,30.0,Baja,-41.2
+2025-01,Estable,Baja,Baja,77.97,19.47,2.56,67.0,Alta,53.33,46.67,0.0,30.0,Baja,-37.0
+2025-02,Estable,Estable,Estable,14.72,84.48,0.8,76.7,Muy alta,0.0,100.0,0.0,100.0,Muy alta,23.3
+2025-03,Estable,Estable,Estable,1.94,98.04,0.03,97.1,Muy alta,0.0,100.0,0.0,100.0,Muy alta,2.9
+2025-04,Estable,Estable,Estable,0.28,99.72,0.0,99.6,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.4
+2025-05,Estable,Estable,Estable,0.01,99.99,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2025-06,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2025-07,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2025-08,Estable,Estable,Estable,0.0,100.0,0.0,100.0,Muy alta,0.0,100.0,0.0,100.0,Muy alta,0.0
+2025-09,Baja,Baja,Estable,61.59,35.91,2.5,42.4,Moderada,38.25,61.75,0.0,42.6,Moderada,0.2
+2025-10,Baja,Baja,Estable,65.52,33.43,1.06,48.3,Moderada,38.78,61.22,0.0,41.8,Moderada,-6.5
+2025-11,Baja,Baja,Estable,74.17,25.22,0.6,61.3,Alta,47.37,52.63,0.0,28.9,Baja,-32.4
+2025-12,Estable,Estable,Estable,36.02,63.22,0.76,44.8,Moderada,17.43,82.57,0.0,73.9,Alta,29.1

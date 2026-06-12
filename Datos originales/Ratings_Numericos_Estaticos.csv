@@ -1,0 +1,4 @@
+﻿Bloque,Rating_Moodys,Rating_SP,Score_Numerico,Descripcion,Nota
+Eurozona,Media_ponderada,Media_ponderada,8.09,"Media ponderada por PIB (DE AAA, FR A+, IT BBB+, ES A+, NL AAA) - Estatico 2026",Supuesto simplificador: rating fijo para todo el periodo historico
+Reino_Unido,Aa3,AA,8.5,Aa3/AA - Estatico 2026,Supuesto simplificador: rating fijo para todo el periodo historico
+EE_UU,Aa1,AA+,9.5,Aa1/AA+ - Estatico 2026,Supuesto simplificador: rating fijo para todo el periodo historico

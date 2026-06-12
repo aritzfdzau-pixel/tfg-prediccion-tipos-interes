@@ -1,0 +1,16 @@
+Mes,Real (%),Pred (%),Error (pp),Dir_Pred,Dir_Real,OK_Dir,P_Baja (%),P_Estable (%),P_Sube (%),Banco
+Ene-2026,2.0,1.95,0.05,Estable,Estable,SI,0.63,98.0,1.38,BCE
+Feb-2026,2.0,1.9,0.1,Estable,Estable,SI,0.63,98.0,1.38,BCE
+Mar-2026,2.0,1.85,0.15,Estable,Estable,SI,0.63,98.0,1.38,BCE
+Abr-2026,2.0,1.8,0.2,Estable,Estable,SI,0.63,98.0,1.38,BCE
+May-2026,2.0,1.75,0.25,Estable,Estable,SI,0.63,98.0,1.38,BCE
+Ene-2026,3.75,3.6292,0.1208,Estable,Estable,SI,1.27,97.61,1.12,BoE
+Feb-2026,3.75,3.5083,0.2417,Estable,Estable,SI,1.27,97.61,1.12,BoE
+Mar-2026,3.75,3.3875,0.3625,Estable,Estable,SI,1.27,97.61,1.12,BoE
+Abr-2026,3.75,3.2667,0.4833,Estable,Estable,SI,1.27,97.61,1.12,BoE
+May-2026,3.75,3.1458,0.6042,Estable,Estable,SI,1.27,97.61,1.12,BoE
+Ene-2026,3.64,3.6242,0.0158,Estable,Estable,SI,39.31,56.94,3.75,FED
+Feb-2026,3.64,3.6083,0.0317,Estable,Estable,SI,39.31,56.94,3.75,FED
+Mar-2026,3.64,3.5925,0.0475,Estable,Estable,SI,39.31,56.94,3.75,FED
+Abr-2026,3.64,3.5767,0.0633,Estable,Estable,SI,39.31,56.94,3.75,FED
+May-2026,3.64,3.5608,0.0792,Estable,Estable,SI,39.31,56.94,3.75,FED

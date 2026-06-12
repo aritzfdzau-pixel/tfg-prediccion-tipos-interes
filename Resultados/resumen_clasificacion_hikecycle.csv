@@ -1,0 +1,4 @@
+Banco,Periodo,N_Baja,N_Estable,N_Sube,Accuracy,Precision_macro,Recall_macro,F1_macro,F1_weighted,ROC_AUC_ovr
+BCE,2022-2023,0,10,14,0.4583,0.3651,0.3476,0.272,0.3792,
+BoE,2022-2023,0,9,15,0.5833,0.3392,0.3259,0.3105,0.5404,
+FED,2022-2023,0,10,14,0.75,0.6,0.4857,0.5259,0.7953,

@@ -1,0 +1,7 @@
+Banco,Instrumento,Metodo,Acc_orig,Acc_cal,F1_orig,F1_cal,Brier_orig,Brier_cal,LogLoss_orig,LogLoss_cal,Conf_orig,Conf_cal,Conf_dic25_orig,Nivel_dic25_orig,Conf_dic25_cal,Nivel_dic25_cal
+BCE,tipo_oficial,isotonic,0.4583,0.625,0.2157,0.3846,0.2775,0.2568,2.7884,13.6001,70.2,87.2,66.1,Alta,100.0,Muy alta
+BoE,tipo_oficial,isotonic,0.7917,0.7917,0.5819,0.4419,0.1347,0.1212,0.6304,3.3458,55.1,91.6,81.1,Muy alta,100.0,Muy alta
+FED,tipo_oficial,platt,0.9167,0.75,0.9062,0.6211,0.062,0.0975,1.4332,0.483,84.9,73.8,44.8,Moderada,80.1,Muy alta
+BCE,OIS,isotonic,0.6667,0.625,0.4947,0.3846,0.1358,0.2067,0.5979,0.976,65.7,91.0,72.2,Alta,95.9,Muy alta
+BoE,OIS,isotonic,0.75,0.75,0.4286,0.4286,0.1572,0.1645,1.0586,5.049,93.3,98.8,99.9,Muy alta,100.0,Muy alta
+FED,OIS,platt,0.75,0.75,0.55,0.4286,0.1252,0.1307,0.5946,0.6546,56.6,78.7,92.5,Muy alta,89.0,Muy alta
