@@ -1,0 +1,10 @@
+Banco,Escenario,Año_giro_a_fijo
+BCE,base,nunca (variable)
+BCE,optimista,nunca (variable)
+BCE,pesimista,2026
+BoE,base,nunca (variable)
+BoE,optimista,nunca (variable)
+BoE,pesimista,2026
+FED,base,nunca (variable)
+FED,optimista,nunca (variable)
+FED,pesimista,2026

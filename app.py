@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import config
 from src.data.data_loader import cargar_datos_procesados
 from src.models.scoring import interpretar_scores
+from src.models import caso_iberdrola as caso
 from src.visualization.charts import (
     grafico_escenarios,
     grafico_historico,
@@ -2045,6 +2046,359 @@ def _seccion_evaluacion(banco: str, instrumento: str = "tipo_oficial") -> None:
 # APLICACION PRINCIPAL
 # ===========================================================================
 
+@st.cache_data(show_spinner=False)
+def _cargar_datos_caso() -> dict:
+    """Predicciones (oficial + OIS) de los 3 bancos × 3 escenarios para el
+    caso Iberdrola. Solo la carga de CSVs va cacheada; el cálculo es en vivo."""
+    return caso.cargar_predicciones(config.RESULTS_DIR)
+
+
+def _fmt_es(x: float, dec: int = 0) -> str:
+    """Formato numérico español: punto como separador de miles, coma decimal."""
+    s = f"{x:,.{dec}f}"
+    return s.replace(",", "§").replace(".", ",").replace("§", ".")
+
+
+def _seccion_caso_iberdrola() -> None:
+    """Caso práctico: optimización de la refinanciación de Iberdrola
+    2026-2028 con las predicciones del modelo (4 estrategias × 3 escenarios)."""
+    import plotly.graph_objects as go
+
+    st.caption(
+        "ℹ️ Esta pestaña no depende del selector de banco/escenario del "
+        "sidebar: usa siempre los 3 bancos (BCE·EUR, BoE·GBP, FED·USD) y "
+        "los 3 escenarios (base, optimista, pesimista)."
+    )
+
+    # ── Bloque 1: enunciado ─────────────────────────────────────────────────
+    st.markdown(
+        "<div style='"
+        "border-left:5px solid #009A44;padding:18px 22px;border-radius:10px;"
+        "background:linear-gradient(135deg,#EDF7F1 0%,#F7FBF8 100%);"
+        "box-shadow:0 1px 6px rgba(0,107,45,0.12);margin-bottom:14px;"
+        "font-family:Nunito,sans-serif;'>"
+        "<b style='color:#006B2D;font-size:1.25em;'>💼 El caso: refinanciar "
+        "la deuda de Iberdrola 2026-2028</b><br><br>"
+        "<span style='color:#4D4D4D;'>"
+        "Iberdrola afronta vencimientos de deuda de <b>5.392 M€ (2026)</b>, "
+        "<b>4.123 M€ (2027)</b> y <b>4.424 M€ (2028)</b> (datos FY2025), en "
+        "pleno plan inversor de <b>58.000 M€</b>. La dirección financiera debe "
+        "decidir cómo refinanciarlos: ¿a tipo fijo, variable, o guiándose por "
+        "las predicciones del modelo?<br><br>"
+        "<b style='color:#006B2D;'>Pregunta:</b> ¿qué estrategia de "
+        "refinanciación minimiza el coste financiero esperado 2026-2030 sin "
+        "comprometer el rating BBB+? Se comparan 4 estrategias bajo los 3 "
+        "escenarios del modelo, ponderados por la verosimilitud que les "
+        "asigna el clasificador.</span></div>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Carga de datos ──────────────────────────────────────────────────────
+    try:
+        datos = _cargar_datos_caso()
+    except FileNotFoundError as exc:
+        st.error(
+            "Faltan CSVs de predicciones en Resultados/ "
+            f"(predicciones_futuras_{{banco}}_{{escenario}}[_OIS].csv): {exc}"
+        )
+        return
+
+    # ── Bloque 2: supuestos interactivos ────────────────────────────────────
+    with st.expander("⚙️ Supuestos del caso (ajustables)", expanded=False):
+        _CASO_DEFAULTS = {
+            "caso_spread": 110, "caso_pctfijo": 77.2,
+            "caso_eur": 55.0, "caso_gbp": 25.0, "caso_usd": 20.0,
+            "caso_umbral_ps": 0.35, "caso_umbral_reg": 0.25,
+            "caso_modo_pesos": "Derivados del clasificador (recomendado)",
+            "caso_pb": 0.36, "caso_po": 0.34, "caso_pp": 0.30,
+        }
+        if st.button("↩️ Restablecer valores por defecto", key="caso_reset"):
+            for k, v in _CASO_DEFAULTS.items():
+                st.session_state[k] = v
+            st.rerun()
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("**Coste y statu quo**")
+            spread_pb = st.slider(
+                "Spread corporativo (pb)", 50, 200, 110, 5,
+                help="Diferencial sobre el tipo de referencia. Calibrado con "
+                     "el bono verde mar-2026 (cupón 3,125% vs BCE ~2,0%).",
+                key="caso_spread")
+            pct_fijo_sq = st.slider(
+                "% deuda a tipo fijo del statu quo", 0.0, 100.0, 77.2, 0.1,
+                help="Cuentas anuales 2025: 77,2% a tipo fijo.",
+                key="caso_pctfijo")
+        with c2:
+            st.markdown("**Mix de divisas del statu quo**")
+            w_eur = st.number_input("EUR (BCE) %", 0.0, 100.0, 55.0, 5.0, key="caso_eur")
+            w_gbp = st.number_input("GBP (BoE) %", 0.0, 100.0, 25.0, 5.0, key="caso_gbp")
+            w_usd = st.number_input("USD (FED) %", 0.0, 100.0, 20.0, 5.0, key="caso_usd")
+            _tot = w_eur + w_gbp + w_usd
+            if _tot <= 0:
+                st.error("El mix de divisas no puede sumar 0%.")
+                return
+            if abs(_tot - 100) > 0.01:
+                st.caption(f"Se normaliza a 100% (suma actual: {_fmt_es(_tot, 1)}%).")
+        with c3:
+            st.markdown("**Umbrales de la estrategia 4 (guiada por el modelo)**")
+            umbral_fijar = st.slider(
+                "P(Sube) anual para girar a fijo", 0.10, 0.60, 0.35, 0.05,
+                help="Señal del clasificador: fija si la probabilidad media "
+                     "anual de subida supera este umbral.",
+                key="caso_umbral_ps")
+            umbral_reg = st.slider(
+                "Subida predicha por la regresión (pp)", 0.05, 0.75, 0.25, 0.05,
+                help="Señal de la regresión: fija si predice una subida "
+                     "acumulada mayor que este umbral el año siguiente.",
+                key="caso_umbral_reg")
+
+        st.markdown("---")
+        modo_pesos = st.radio(
+            "Pesos de los escenarios",
+            ["Derivados del clasificador (recomendado)", "Manuales"],
+            horizontal=True, key="caso_modo_pesos")
+        pesos_manual = None
+        if modo_pesos == "Manuales":
+            p1, p2, p3 = st.columns(3)
+            pb_ = p1.slider("Peso base", 0.0, 1.0, 0.36, 0.01, key="caso_pb")
+            po_ = p2.slider("Peso optimista", 0.0, 1.0, 0.34, 0.01, key="caso_po")
+            pp_ = p3.slider("Peso pesimista", 0.0, 1.0, 0.30, 0.01, key="caso_pp")
+            if pb_ + po_ + pp_ <= 0:
+                st.error("Los pesos manuales no pueden sumar 0.")
+                return
+            pesos_manual = {"base": pb_, "optimista": po_, "pesimista": pp_}
+            st.caption("Los pesos se normalizan para sumar 100%.")
+
+    # ── Cálculo en vivo ─────────────────────────────────────────────────────
+    divisas_sq = {"BCE": w_eur / _tot, "BoE": w_gbp / _tot, "FED": w_usd / _tot}
+    estrategias = caso.construir_estrategias(
+        divisas_statuquo=divisas_sq,
+        pct_fijo_statuquo=pct_fijo_sq / 100,
+    )
+    res = caso.calcular_caso(
+        datos,
+        estrategias=estrategias,
+        pesos=pesos_manual,
+        spread=spread_pb / 100,
+        umbral_fijar=umbral_fijar,
+        umbral_subida_reg=umbral_reg,
+    )
+    pesos = res["pesos"]
+    costes = res["costes"]
+    esperado = {
+        n: sum(pesos[e] * costes[n][e] for e in caso.ESCENARIOS)
+        for n in estrategias
+    }
+    mejor = min(esperado, key=esperado.get)
+
+    # ── Bloque 3a: pesos de escenarios ──────────────────────────────────────
+    st.subheader("Pesos de los escenarios")
+    if pesos_manual is None:
+        st.markdown(
+            "Los pesos se derivan del propio clasificador: para cada escenario "
+            "se calcula la **verosimilitud direccional media** (la probabilidad "
+            "media que el clasificador asigna a la dirección que sigue la senda "
+            "de ese escenario, con umbral ±0,05 pp/mes) y se normaliza. Un "
+            "escenario cuya trayectoria el clasificador ve más plausible pesa más."
+        )
+        df_pesos_disp = pd.DataFrame({
+            "Escenario": [e.capitalize() for e in caso.ESCENARIOS],
+            "Verosimilitud media": [
+                _fmt_es(res["verosim"][e] * 100, 1) + " %" for e in caso.ESCENARIOS],
+            "Peso normalizado": [
+                _fmt_es(pesos[e] * 100, 1) + " %" for e in caso.ESCENARIOS],
+        })
+    else:
+        st.markdown("Pesos fijados **manualmente** (normalizados a 100%).")
+        df_pesos_disp = pd.DataFrame({
+            "Escenario": [e.capitalize() for e in caso.ESCENARIOS],
+            "Peso normalizado": [
+                _fmt_es(pesos[e] * 100, 1) + " %" for e in caso.ESCENARIOS],
+        })
+    st.dataframe(df_pesos_disp, hide_index=True, use_container_width=True)
+
+    st.divider()
+
+    # ── Bloque 3b: tabla principal de costes ────────────────────────────────
+    st.subheader("Coste financiero total 2026-2030 por estrategia (M€)")
+    nombres = list(estrategias.keys())
+    df_tabla = pd.DataFrame({
+        "Estrategia": [n + (" 🏆" if n == mejor else "") for n in nombres],
+        "Base": [costes[n]["base"] for n in nombres],
+        "Optimista": [costes[n]["optimista"] for n in nombres],
+        "Pesimista": [costes[n]["pesimista"] for n in nombres],
+        "Esperado": [esperado[n] for n in nombres],
+    })
+
+    _num_cols = ["Base", "Optimista", "Pesimista", "Esperado"]
+
+    def _resaltar_minimo(col: pd.Series):
+        if col.name not in _num_cols:
+            return ["" for _ in col]
+        return [
+            "background-color:#009A44;color:white;font-weight:700;"
+            if v == col.min() else "" for v in col
+        ]
+
+    def _fila_ganadora(row: pd.Series):
+        if "🏆" in str(row["Estrategia"]):
+            return ["border-top:2px solid #006B2D;border-bottom:2px solid #006B2D;"
+                    for _ in row]
+        return ["" for _ in row]
+
+    styler = (
+        df_tabla.style
+        .apply(_resaltar_minimo, axis=0)
+        .apply(_fila_ganadora, axis=1)
+        .format({c: lambda v: _fmt_es(v) + " M€" for c in _num_cols})
+    )
+    st.dataframe(styler, hide_index=True, use_container_width=True)
+    st.caption(
+        "En verde, el mínimo de cada columna. 🏆 = estrategia ganadora por "
+        "coste esperado."
+    )
+
+    # ── Métricas destacadas ─────────────────────────────────────────────────
+    m1, m2, m3 = st.columns(3)
+    ahorro_sq = esperado["1. Statu quo"] - esperado["4. Guiada por el modelo"]
+    dif_agresiva_pes = (costes["3. Agresiva"]["pesimista"]
+                        - costes["4. Guiada por el modelo"]["pesimista"])
+    m1.metric(
+        "Ahorro esperado: modelo vs statu quo",
+        f"{_fmt_es(ahorro_sq)} M€",
+        delta=f"{-ahorro_sq / esperado['1. Statu quo'] * 100:.1f}% de coste",
+        delta_color="inverse",
+    )
+    m2.metric(
+        "Protección vs agresiva (esc. pesimista)",
+        f"{_fmt_es(dif_agresiva_pes)} M€",
+        delta="menor coste si los tipos suben" if dif_agresiva_pes > 0
+        else "la agresiva costaría menos",
+        delta_color="normal" if dif_agresiva_pes > 0 else "inverse",
+    )
+    m3.metric("Estrategia óptima (coste esperado)", mejor.split(". ", 1)[-1])
+
+    # ── Bloque 3c: gráfico de barras agrupadas ──────────────────────────────
+    _colores_esc = {"base": "#009A44", "optimista": "#8DC63F", "pesimista": "#CC0000"}
+    fig_bar = go.Figure()
+    for e in caso.ESCENARIOS:
+        fig_bar.add_trace(go.Bar(
+            name=e.capitalize(),
+            x=nombres,
+            y=[costes[n][e] for n in nombres],
+            marker_color=_colores_esc[e],
+        ))
+    fig_bar.add_trace(go.Scatter(
+        name="Coste esperado",
+        x=nombres,
+        y=[esperado[n] for n in nombres],
+        mode="markers+text",
+        marker=dict(symbol="diamond", size=14, color="#003B22",
+                    line=dict(width=2, color="white")),
+        text=[_fmt_es(esperado[n]) for n in nombres],
+        textposition="top center",
+        textfont=dict(color="#003B22", size=12),
+    ))
+    fig_bar.update_layout(
+        barmode="group",
+        title="Coste por estrategia y escenario (M€, total 2026-2030)",
+        yaxis_title="Coste financiero (M€)",
+        font=dict(family="Nunito, sans-serif"),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        height=460,
+    )
+    st.plotly_chart(fig_bar, use_container_width=True, key="caso_fig_barras")
+
+    # ── Bloque 3d: perfil riesgo-retorno ────────────────────────────────────
+    col_rr, col_giros = st.columns([3, 2])
+    with col_rr:
+        _colores_estr = ["#4D4D4D", "#0083CA", "#CC0000", "#009A44"]
+        fig_rr = go.Figure()
+        for n, c in zip(nombres, _colores_estr):
+            fig_rr.add_trace(go.Scatter(
+                x=[costes[n]["pesimista"]],
+                y=[esperado[n]],
+                mode="markers+text",
+                name=n,
+                text=[n.split(". ", 1)[-1]],
+                textposition="top center",
+                marker=dict(size=16, color=c,
+                            line=dict(width=2, color="white")),
+            ))
+        fig_rr.update_layout(
+            title="Perfil riesgo-retorno (abajo-izquierda = mejor)",
+            xaxis_title="Riesgo: coste en escenario pesimista (M€)",
+            yaxis_title="Coste esperado (M€)",
+            font=dict(family="Nunito, sans-serif"),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            height=420,
+        )
+        st.plotly_chart(fig_rr, use_container_width=True, key="caso_fig_rr")
+
+    # ── Bloque 3e: giros a fijo de la estrategia 4 ──────────────────────────
+    with col_giros:
+        st.markdown("**Giros a fijo de la estrategia guiada por el modelo**")
+        df_giros = res["df_giros"].pivot(
+            index="Banco", columns="Escenario", values="Año_giro_a_fijo"
+        )[caso.ESCENARIOS]
+        df_giros.columns = [c.capitalize() for c in df_giros.columns]
+        st.dataframe(df_giros, use_container_width=True)
+        st.caption(
+            "Año en que cada tramo gira de variable a fijo. La señal es "
+            "híbrida: clasificador (P(Sube) anual > "
+            f"{_fmt_es(umbral_fijar * 100)}%) **o** regresión (subida "
+            f"acumulada > {_fmt_es(umbral_reg, 2)} pp el año siguiente)."
+        )
+
+    st.divider()
+
+    # ── Bloque 4: interpretación dinámica ───────────────────────────────────
+    st.subheader("Interpretación")
+    mas_protectora = min(nombres, key=lambda n: costes[n]["pesimista"])
+    modelo = "4. Guiada por el modelo"
+    extra_vs_min = esperado[modelo] - esperado[mejor]
+
+    partes = [
+        f"Con los supuestos actuales, la estrategia con menor coste esperado "
+        f"es **{mejor}** ({_fmt_es(esperado[mejor])} M€), y la que mejor "
+        f"protege en el escenario pesimista es **{mas_protectora}** "
+        f"({_fmt_es(costes[mas_protectora]['pesimista'])} M€)."
+    ]
+    if mejor == modelo:
+        partes.append(
+            "La estrategia guiada por el modelo **domina**: gana por coste "
+            "esperado y además limita el riesgo en el escenario adverso."
+        )
+    elif mas_protectora == modelo:
+        partes.append(
+            f"La estrategia guiada por el modelo queda a solo "
+            f"{_fmt_es(extra_vs_min)} M€ del mínimo esperado "
+            f"({-extra_vs_min / esperado[mejor] * 100:+.1f}%), pero recorta el "
+            f"coste del escenario pesimista en "
+            f"{_fmt_es(dif_agresiva_pes)} M€ frente a la agresiva. En términos "
+            f"media-riesgo, es la opción más defendible para preservar el "
+            f"rating BBB+: captura casi todo el ahorro del tramo variable y "
+            f"gira a fijo cuando el modelo anticipa subidas."
+        )
+    else:
+        partes.append(
+            f"Con estos supuestos, la estrategia guiada por el modelo tiene un "
+            f"coste esperado de {_fmt_es(esperado[modelo])} M€ y un coste "
+            f"pesimista de {_fmt_es(costes[modelo]['pesimista'])} M€; conviene "
+            f"revisar los umbrales de giro para evaluar su perfil media-riesgo."
+        )
+    partes.append(
+        f"Frente al statu quo, seguir al modelo supone un ahorro esperado de "
+        f"**{_fmt_es(ahorro_sq)} M€** en el horizonte 2026-2030."
+    )
+    st.markdown(" ".join(partes))
+
+
 def main() -> None:
 
     # ── Configuracion de pagina ─────────────────────────────────────────────
@@ -2598,11 +2952,12 @@ def main() -> None:
             pass
 
     # ── Tabs principales ────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🌍 Panorama global",
         "📊 Historico y test",
         "🔮 Predicciones 2026-2030",
         "🔬 Evaluacion del modelo",
+        "💼 Caso Practico",
     ])
 
     with tab1:
@@ -2616,6 +2971,9 @@ def main() -> None:
 
     with tab4:
         _seccion_evaluacion(banco, instrumento)
+
+    with tab5:
+        _seccion_caso_iberdrola()
 
 
 # ── Punto de entrada ────────────────────────────────────────────────────────
